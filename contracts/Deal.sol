@@ -236,6 +236,21 @@ contract Deal {
     TransactionSent(buyerAddr, transactionseq, delivery_date);
   }
 
+
+  /// The function to get the sent transaction
+  ///  requires no fee
+  function getTransaction(uint transaction_no) constant public returns (address buyer, uint transaction_no, uint delivery_date){
+
+    /// Validate the transaction number
+    require(transactions[transaction_no].init);
+
+    Transaction storage _transaction = transaction[transaction_no];
+    /// Order storage _order     = orders[_invoice.orderno];
+
+    ///TODO: Need to fetch delivery_date and transaction_no from _transaction
+    return (buyerAddr, transaction_no, _transaction);
+  }
+
   /// The function to get the sent invoice
   ///  requires no fee
   function getInvoice(uint invoiceno) constant public returns (address buyer, uint orderno, uint delivery_date, address courier){
