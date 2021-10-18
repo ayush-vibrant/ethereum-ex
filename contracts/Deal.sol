@@ -48,17 +48,32 @@ contract Deal {
     bool init;
   }
 
+  /// The Transaction struct
+  struct Transaction {
+    string buyer;
+    string seller;
+    string orderId;
+    string orderPlatform; /// TODO: mark it as constant later
+    string productSno;
+  }
+
   /// The mapping to store orders
   mapping (uint => Order) orders;
 
   /// The mapping to store invoices
   mapping (uint => Invoice) invoices;
 
+  /// The mapping to store transactions
+  mapping (uint => Transaction) transactions;
+
   /// The sequence number of orders
   uint orderseq;
 
   /// The sequence number of invoices
   uint invoiceseq;
+
+  /// The sequence number of transactions
+  uint transactionseq;
 
   /// Event triggered for every registered buyer
   event BuyerRegistered(address buyer, string name);
@@ -74,6 +89,9 @@ contract Deal {
 
   /// Event triggered when the seller sends the invoice
   event InvoiceSent(address buyer, uint invoiceno, uint orderno, uint delivery_date, address courier);
+
+  /// Event triggered when the seller sends the invoice
+  event TransactionSent(address buyer, uint transaction_no, uint delivery_date);
 
   /// Event triggered when the courie delives the order
   event OrderDelivered(address buyer, uint invoiceno, uint orderno, uint real_delivey_date, address courier);
@@ -191,6 +209,31 @@ contract Deal {
 
     /// Trigger the event
     InvoiceSent(buyerAddr, invoiceseq, orderno, delivery_date, courier);
+  }
+
+
+
+  /// The function to send the transaction data
+  ///  requires fee
+  function sendTransaction(uint transaction_no, string order_id, string product_sno, uint delivery_date, address buyer) payable public {
+
+    /// Validate the transaction number
+    require(transactions[transaction_no].init);
+
+    /// Just the seller can send the invoice
+    require(owner == msg.sender);
+
+    transactionseq++;
+
+    /// Create then Invoice instance and store it
+    transactions[transactionseq] = Transaction(buyer, msg.sender, order_id, "OLX", product_sno);
+
+    /// Update the shipment data TODO: Check this!!
+    /// orders[orderno].shipment.date    = delivery_date;
+    /// orders[orderno].shipment.courier = courier;
+
+    /// Trigger the event
+    TransactionSent(buyerAddr, transactionseq, delivery_date);
   }
 
   /// The function to get the sent invoice
