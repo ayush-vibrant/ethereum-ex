@@ -47,10 +47,10 @@ contract Deal {
 
   /// The function to send the transaction data
   ///  requires fee
-  function sendTransaction(uint transaction_no, string order_id, string product_sno, uint transaction_date, address buyer) payable public {
+  function sendTransaction(string order_id, string product_sno, uint transaction_date, address buyer) payable public {
 
     /// Validate the transaction number
-    require(transactions[transaction_no].init);
+    /// require(transactions[transaction_no].init);
 
     /// Just the seller can send the invoice
     require(from == msg.sender);
