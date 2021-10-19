@@ -3,10 +3,10 @@ pragma solidity ^0.4.18;
 contract Deal {
 
   /// The seller's address
-  address public owner;
+  address public from;
 
   /// The buyer's address part on this contract
-  address public buyerAddr;
+  address public to;
 
   /// The Buyer struct  
   struct Buyer {
@@ -50,11 +50,13 @@ contract Deal {
 
   /// The Transaction struct
   struct Transaction {
-    string buyer;
-    string seller;
+    address to;
+    address from;
     string orderId;
     string orderPlatform; /// TODO: mark it as constant later
     string productSno;
+
+    bool init;
   }
 
   /// The mapping to store orders
@@ -91,7 +93,7 @@ contract Deal {
   event InvoiceSent(address buyer, uint invoiceno, uint orderno, uint delivery_date, address courier);
 
   /// Event triggered when the seller sends the invoice
-  event TransactionSent(address buyer, uint transaction_no, uint delivery_date);
+  event TransactionSent(address indexed from, address to, uint transaction_no, uint transaction_date);
 
   /// Event triggered when the courie delives the order
   event OrderDelivered(address buyer, uint invoiceno, uint orderno, uint real_delivey_date, address courier);
@@ -100,9 +102,9 @@ contract Deal {
   function Deal(address _buyerAddr) public payable {
     
     /// The seller is the contract's owner
-    owner = msg.sender;
+    from = msg.sender;
 
-    buyerAddr = _buyerAddr;
+    to = _buyerAddr;
   }
 
   /// The function to send purchase orders
@@ -112,7 +114,7 @@ contract Deal {
   function sendOrder(string goods, uint quantity) payable public {
     
     /// Accept orders just from buyer
-    require(msg.sender == buyerAddr);
+    require(msg.sender == to);
 
     /// Increment the order sequence
     orderseq++;
@@ -133,7 +135,7 @@ contract Deal {
     require(orders[number].init);
 
     /// Return the order data
-    return(buyerAddr, orders[number].goods, orders[number].quantity, orders[number].price, orders[number].safepay, orders[number].shipment.price, orders[number].shipment.safepay);
+    return(to, orders[number].goods, orders[number].quantity, orders[number].price, orders[number].safepay, orders[number].shipment.price, orders[number].shipment.safepay);
   }
 
   /// The function to send the price to pay for order
@@ -142,7 +144,7 @@ contract Deal {
   function sendPrice(uint orderno, uint price, int8 ttype) payable public {
   
     /// Only the owner can use this function
-    require(msg.sender == owner);
+    require(msg.sender == from);
 
     /// Validate the order number
     require(orders[orderno].init);
@@ -165,7 +167,7 @@ contract Deal {
     }
 
     /// Trigger the event
-    PriceSent(buyerAddr, orderno, price, ttype);
+    PriceSent(to, orderno, price, ttype);
 
   }
 
@@ -178,7 +180,7 @@ contract Deal {
     require(orders[orderno].init);
 
     /// Just the buyer can make safepay
-    require(buyerAddr == msg.sender);
+    require(to == msg.sender);
 
     /// The order's value plus the shipment value must equal to msg.value
     require((orders[orderno].price + orders[orderno].shipment.price) == msg.value);
@@ -196,7 +198,7 @@ contract Deal {
     require(orders[orderno].init);
 
     /// Just the seller can send the invoice
-    require(owner == msg.sender);
+    require(from == msg.sender);
 
     invoiceseq++;
 
@@ -208,47 +210,47 @@ contract Deal {
     orders[orderno].shipment.courier = courier;
 
     /// Trigger the event
-    InvoiceSent(buyerAddr, invoiceseq, orderno, delivery_date, courier);
+    InvoiceSent(to, invoiceseq, orderno, delivery_date, courier);
   }
 
 
 
   /// The function to send the transaction data
   ///  requires fee
-  function sendTransaction(uint transaction_no, string order_id, string product_sno, uint delivery_date, address buyer) payable public {
+  function sendTransaction(uint transaction_no, string order_id, string product_sno, uint transaction_date, address buyer) payable public {
 
     /// Validate the transaction number
     require(transactions[transaction_no].init);
 
     /// Just the seller can send the invoice
-    require(owner == msg.sender);
+    require(from == msg.sender);
 
     transactionseq++;
 
-    /// Create then Invoice instance and store it
-    transactions[transactionseq] = Transaction(buyer, msg.sender, order_id, "OLX", product_sno);
+    /// Create then Transaction instance and store it
+    transactions[transactionseq] = Transaction(buyer, msg.sender, order_id, "OLX", product_sno, true);
 
     /// Update the shipment data TODO: Check this!!
     /// orders[orderno].shipment.date    = delivery_date;
     /// orders[orderno].shipment.courier = courier;
 
     /// Trigger the event
-    TransactionSent(buyerAddr, transactionseq, delivery_date);
+    TransactionSent(msg.sender, to, transactionseq, transaction_date);
   }
 
 
   /// The function to get the sent transaction
   ///  requires no fee
-  function getTransaction(uint transaction_no) constant public returns (address buyer, uint transaction_no, uint delivery_date){
+  function getTransaction(uint transaction_no) constant public
+  returns (address to, address from, string orderId, string orderPlatform, string productSno){
 
     /// Validate the transaction number
     require(transactions[transaction_no].init);
 
-    Transaction storage _transaction = transaction[transaction_no];
+    Transaction storage _transaction = transactions[transaction_no];
     /// Order storage _order     = orders[_invoice.orderno];
 
-    ///TODO: Need to fetch delivery_date and transaction_no from _transaction
-    return (buyerAddr, transaction_no, _transaction);
+    return (_transaction.to, _transaction.from, _transaction.orderId, _transaction.orderPlatform, _transaction.productSno);
   }
 
   /// The function to get the sent invoice
@@ -261,7 +263,7 @@ contract Deal {
     Invoice storage _invoice = invoices[invoiceno];
     Order storage _order     = orders[_invoice.orderno];
 
-    return (buyerAddr, _order.number, _order.shipment.date, _order.shipment.courier);
+    return (to, _order.number, _order.shipment.date, _order.shipment.courier);
   }
 
   /// The function to mark an order as delivered
@@ -276,10 +278,10 @@ contract Deal {
     /// Just the courier can call this function
     require(_order.shipment.courier == msg.sender);
 
-    OrderDelivered(buyerAddr, invoiceno, _order.number, timestamp, _order.shipment.courier);
+    OrderDelivered(to, invoiceno, _order.number, timestamp, _order.shipment.courier);
 
     /// Payout the Order to the seller
-    owner.transfer(_order.safepay);
+    from.transfer(_order.safepay);
 
     /// Payout the Shipment to the courier
     _order.shipment.courier.transfer(_order.shipment.safepay);
