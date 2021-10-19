@@ -26,7 +26,13 @@ contract Deal {
   uint transactionseq;
 
   /// Event triggered when the seller sends the invoice
-  event TransactionSent(address indexed from, address to, uint transaction_no, uint transaction_date);
+  event TransactionSent(
+    address from,
+    address to,
+    uint transaction_no,
+    uint transaction_date,
+    string indexed orderPlatform
+  );
 
 
   /// The smart contract's constructor
@@ -59,7 +65,7 @@ contract Deal {
     /// orders[orderno].shipment.courier = courier;
 
     /// Trigger the event
-    TransactionSent(msg.sender, to, transactionseq, transaction_date);
+    TransactionSent(msg.sender, to, transactionseq, transaction_date, "OLX");
   }
 
 
