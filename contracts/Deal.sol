@@ -242,7 +242,7 @@ contract Deal {
   /// The function to get the sent transaction
   ///  requires no fee
   function getTransaction(uint transaction_no) constant public
-  returns (address to, address from, string orderId, string orderPlatform, string productSno){
+  returns (address buyer, address seller, string orderId, string orderPlatform, string productSno){
 
     /// Validate the transaction number
     require(transactions[transaction_no].init);
