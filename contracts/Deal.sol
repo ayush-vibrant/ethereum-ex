@@ -12,8 +12,10 @@ contract Deal {
   struct Transaction {
     address to;
     address from;
+    string buyerName;
+    string sellerName;
     string orderId;
-    string orderPlatform; /// TODO: mark it as constant later
+    string orderPlatform;
     string productSno;
 
     bool init;
@@ -29,6 +31,8 @@ contract Deal {
   event TransactionSent(
     address from,
     address to,
+    string buyerName,
+    string sellerName,
     uint transaction_no,
     uint transaction_date,
     string indexed orderPlatform
@@ -37,7 +41,7 @@ contract Deal {
 
   /// The smart contract's constructor
   function Deal(address _buyerAddr) public payable {
-    
+
     /// The seller is the contract's owner
     from = msg.sender;
 
@@ -47,7 +51,7 @@ contract Deal {
 
   /// The function to send the transaction data
   ///  requires fee
-  function sendTransaction(string order_id, string product_sno, uint transaction_date, address buyer) payable public {
+  function sendTransaction(string order_id, string product_sno, uint transaction_date, string buyerName, string sellerName, address buyer) payable public {
 
     /// Validate the transaction number
     /// require(transactions[transaction_no].init);
@@ -58,21 +62,22 @@ contract Deal {
     transactionseq++;
 
     /// Create then Transaction instance and store it
-    transactions[transactionseq] = Transaction(buyer, msg.sender, order_id, "OLX", product_sno, true);
 
-    /// Update the shipment data TODO: Check this!!
+    transactions[transactionseq] = Transaction(buyer, msg.sender, buyerName, sellerName, order_id, "OLX", product_sno, true);
+
+    /// Update the shipment data
     /// orders[orderno].shipment.date    = delivery_date;
     /// orders[orderno].shipment.courier = courier;
 
     /// Trigger the event
-    TransactionSent(msg.sender, to, transactionseq, transaction_date, "OLX");
+    TransactionSent(msg.sender, to, buyerName, sellerName, transactionseq, transaction_date, "OLX");
   }
 
 
   /// The function to get the sent transaction
   ///  requires no fee
   function getTransaction(uint transaction_no) constant public
-  returns (address buyer, address seller, string orderId, string orderPlatform, string productSno){
+  returns (address buyer, address seller, string buyerName, string sellerName, string orderId, string orderPlatform, string productSno){
 
     /// Validate the transaction number
     require(transactions[transaction_no].init);
@@ -80,7 +85,7 @@ contract Deal {
     Transaction storage _transaction = transactions[transaction_no];
     /// Order storage _order     = orders[_invoice.orderno];
 
-    return (_transaction.to, _transaction.from, _transaction.orderId, _transaction.orderPlatform, _transaction.productSno);
+    return (_transaction.to, _transaction.from, _transaction.buyerName, _transaction.sellerName, _transaction.orderId, _transaction.orderPlatform, _transaction.productSno);
   }
 
   function health() pure public returns (string) {
